@@ -55,6 +55,7 @@ public class LogInterceptor {
 		OprationLog logAno = (OprationLog) clazz
 				.getAnnotation(OprationLog.class);
 		if (logAno == null) {
+			String methodName = signature.getName();
 			return false;
 		}
 		return logAno.isRecord();
