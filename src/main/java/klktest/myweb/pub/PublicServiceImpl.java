@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service("publicService")
-@Transactional
 @OprationLog(isRecord=true, oprType="db")
 public class PublicServiceImpl implements IPublicService {
 	@Autowired
@@ -48,6 +47,7 @@ public class PublicServiceImpl implements IPublicService {
 
 
 	public <T extends BaseEntity> void update(T... entitys) {
+		int i1=1/0;
 		beforeUpdate(entitys);
 		for(int i=0; i<entitys.length; i++) {
 			hibernateTemplate.update(entitys[i]);
@@ -80,6 +80,7 @@ public class PublicServiceImpl implements IPublicService {
 		return (T) hibernateTemplate.get(entity, pk);
 	}
 	
+	@OprationLog(isRecord=true, oprType="db")
 	public HibernateTemplate getHibernateTemplate() {
 		return hibernateTemplate;
 	}

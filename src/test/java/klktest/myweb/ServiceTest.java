@@ -3,8 +3,11 @@ package klktest.myweb;
 import java.util.Calendar;
 import java.util.List;
 
+import javax.annotation.Resource;
+
 import klktest.myweb.entity.College;
 import klktest.myweb.entity.Major;
+import klktest.myweb.pub.PublicServiceImpl;
 import klktest.myweb.service.CollegeService;
 
 import org.hibernate.criterion.DetachedCriteria;
@@ -13,6 +16,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.core.annotation.Order;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.transaction.TransactionConfiguration;
@@ -20,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration({"/applicationContext.xml"})
- @Transactional
  @TransactionConfiguration(transactionManager="transactionManager",defaultRollback=false)
 public class ServiceTest {
 	@Autowired
@@ -32,8 +36,14 @@ public class ServiceTest {
 	
 	public static void main(String[] args) {
 		ServiceTest t = new ServiceTest();
-		t.service.save(t.getCol());
-		t.service.save(t.getMaj());
+		t.init();
+		t.updateTest();
+	}
+
+	@SuppressWarnings("resource")
+	private void init() {
+		service = new ClassPathXmlApplicationContext("applicationContext.xml").getBean(CollegeService.class);
+		
 	}
 
 	@Test
@@ -45,9 +55,12 @@ public class ServiceTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void updateTest() {
-		List<College> all2 =
-				(List<College>) service.getHibernateTemplate().findByCriteria(DetachedCriteria.forClass(College.class).add(Restrictions.eq("dr", 0)));
-		System.out.println("a2"+all2);
+//		List<College> all2 =
+//				(List<College>) service.getHibernateTemplate().findByCriteria(DetachedCriteria.forClass(College.class).add(Restrictions.eq("dr", 0)));
+//		System.out.println("a2"+all2);
+//		service.update(all2.get(0));
+//		service.update(all2.get(0),all2.get(1));
+		service.test();
 	}
 	
 	@SuppressWarnings("unchecked")

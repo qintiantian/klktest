@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface OprationLog {
 
-	String oprType();
+	String oprType() default "db";
 	
 	boolean isRecord() default true;
 	

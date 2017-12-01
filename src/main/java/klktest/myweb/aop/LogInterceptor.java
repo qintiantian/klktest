@@ -1,6 +1,9 @@
 package klktest.myweb.aop;
 
+import java.lang.reflect.Method;
+
 import klktest.myweb.anonation.OprationLog;
+import klktest.myweb.entity.BaseEntity;
 import klktest.myweb.entity.OprLog;
 import klktest.myweb.enums.OperationResult;
 import klktest.myweb.enums.OperationType;
@@ -8,18 +11,21 @@ import klktest.myweb.pub.BaseEntityIdSetter;
 
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.Signature;
-import org.aspectj.lang.annotation.After;
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.orm.hibernate4.HibernateTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @Aspect
-@Transactional
+@Order(10)
+@Transactional(propagation=Propagation.REQUIRES_NEW)
 public class LogInterceptor {
 	@Autowired
 	private HibernateTemplate template;
@@ -30,11 +36,11 @@ public class LogInterceptor {
 	public void logPointcut() {
 	};
 
-	@After("logPointcut()")
+	@Before("logPointcut()")
 	public void recordLog(JoinPoint joinpoint) {
 		if(isRecord(joinpoint)){
 			OprLog logVO = genLog(joinpoint, OperationResult.SUCCESS);
-			logVO.setMessage("执行成功");
+			logVO.setMessage("调用方法"+joinpoint.getSignature().getName());
 			template.save(logVO);
 		}
 	}
@@ -43,7 +49,7 @@ public class LogInterceptor {
 	public void recordExceptionLog(JoinPoint joinpoint, Throwable ex) {
 		if(isRecord(joinpoint)) {
 			OprLog logVO = genLog(joinpoint, OperationResult.FAILED);
-			logVO.setMessage(ex.getMessage().substring(0, 500));
+			logVO.setMessage("调用方法"+joinpoint.getSignature().getName()+"失败："+ex.getMessage());
 			template.save(logVO);
 		}
 	}
@@ -52,20 +58,41 @@ public class LogInterceptor {
 	private boolean isRecord(JoinPoint joinpoint) {
 		Signature signature = joinpoint.getSignature();
 		Class clazz = signature.getDeclaringType();
-		OprationLog logAno = (OprationLog) clazz
+		OprationLog clazzAno = (OprationLog) clazz
 				.getAnnotation(OprationLog.class);
-		if (logAno == null) {
-			String methodName = signature.getName();
-			return false;
+		String methodName = signature.getName();
+		Object[] params = joinpoint.getArgs();
+		Class[] parameterTypes = new Class[params.length];
+		for(int i=0; i<params.length; i++) {
+			if(i == params.length-1 && params[i] instanceof BaseEntity[]){
+				parameterTypes[i] = BaseEntity[].class;
+				break;
+			}
+			parameterTypes[i] = params[i].getClass().getSuperclass();
 		}
-		return logAno.isRecord();
+		try {
+			Method method = clazz.getMethod(methodName, parameterTypes);
+			OprationLog methodAno = method.getAnnotation(OprationLog.class);
+			if(methodAno == null){
+				if(clazzAno != null)
+					return clazzAno.isRecord();
+				else
+					return false;
+			}
+			return methodAno.isRecord();
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+		return false;
 	}
 
 	private OprLog genLog(JoinPoint joinpoint, OperationResult result) {
 		Signature signature = joinpoint.getSignature();
 		String qualifiedName = signature.getDeclaringTypeName();
 		OprLog logVO = new OprLog();
-		logVO.setOprClass(qualifiedName);
+		logVO.setOprClass(qualifiedName+" "+signature.getName());
 		logVO.setOprResult(result.getName());
 		OperationType oprType = getOprType(signature.getName());
 		logVO.setOprType(oprType.getName());
